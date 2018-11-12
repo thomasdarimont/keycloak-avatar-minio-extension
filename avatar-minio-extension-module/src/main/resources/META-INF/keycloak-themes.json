@@ -1,0 +1,10 @@
+{
+  "themes": [
+    {
+      "name": "account-avatar",
+      "types": [
+        "account"
+      ]
+    }
+  ]
+}
