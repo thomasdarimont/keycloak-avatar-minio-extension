@@ -10,16 +10,26 @@ import org.keycloak.models.KeycloakSessionFactory;
 @JBossLog
 public class MinioAvatarStorageProviderFactory implements AvatarStorageProviderFactory {
 
+    //TODO remove default settings
+    private static final String DEFAULT_SERVER_URL = "http://172.17.0.2:9000";
+    private static final String DEFAULT_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE";
+    private static final String DEFAULT_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+
+    private MinioConfig minioConfig = new MinioConfig(DEFAULT_SERVER_URL, DEFAULT_ACCESS_KEY, DEFAULT_SECRET_KEY);
+
     @Override
     public AvatarStorageProvider create(KeycloakSession session) {
-
-        MinioConfig config = new MinioConfig("http://172.17.0.2:9000", "AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
-        return new MinioAvatarStorageProvider(config);
+        return new MinioAvatarStorageProvider(minioConfig);
     }
 
     @Override
     public void init(Config.Scope config) {
-        // TODO pull config from settings
+
+        String serverUrl = config.get("server-url", DEFAULT_SERVER_URL);
+        String accessKey = config.get("access-key", DEFAULT_ACCESS_KEY);
+        String secretKey = config.get("secret-key", DEFAULT_SECRET_KEY);
+
+        this.minioConfig = new MinioConfig(serverUrl, accessKey, secretKey);
     }
 
     @Override
