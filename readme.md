@@ -57,16 +57,11 @@ KC_ID_TOKEN=$(echo $KC_RESPONSE| jq -r .id_token)
 KC_REFRESH_TOKEN=$(echo $KC_RESPONSE| jq -r .refresh_token)
 ```
 
-Upload some image
-```
-curl \
-  -v \
-  -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-  -F "image=@/home/tom/Pictures/tom.png" \
-  http://localhost:8080/auth/realms/$KC_REALM/avatar-provider/avatar
-```
+## Upload avatar image via account page
 
-Retrieve image
+Goto account page and click on upload avatar
+
+## Retrieve avatar image
 ```
  curl -v \
    -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
