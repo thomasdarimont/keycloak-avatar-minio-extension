@@ -6,6 +6,7 @@ The avatar images are stored in a [minio](https://www.minio.io/) backend.
 Avatar images can either be uploaded via the account page of the custom
 account theme `account-avatar` or via the `AvatarResource` custom realm resource. 
 
+<img src="keycloak-avatar-demo.png" alt="Keycloak Avatar Demo">
 
 ## Start the minio backend
 ```

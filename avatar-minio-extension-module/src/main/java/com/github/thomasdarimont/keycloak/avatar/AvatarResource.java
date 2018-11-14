@@ -66,7 +66,7 @@ public class AvatarResource {
     public Response downloadAvatarImage() {
 
         if (auth == null) {
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            return badRequest();
         }
 
         String realmName = auth.getSession().getRealm().getName();
