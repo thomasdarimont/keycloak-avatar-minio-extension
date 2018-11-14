@@ -59,7 +59,7 @@ KC_REFRESH_TOKEN=$(echo $KC_RESPONSE| jq -r .refresh_token)
 
 ## Upload avatar image via account page
 
-Goto account page and click on upload avatar
+Goto account page and click on 'Choose File' and click save.
 
 ## Retrieve avatar image
 ```
