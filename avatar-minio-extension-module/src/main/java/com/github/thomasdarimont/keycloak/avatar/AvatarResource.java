@@ -26,6 +26,8 @@ import java.io.OutputStream;
 public class AvatarResource {
 
     private static final String AVATAR_IMAGE_PARAMETER = "image";
+    public static final String STATE_CHECKER_ATTRIBUTE = "state_checker";
+    public static final String STATE_CHECKER_PARAMETER = "stateChecker";
 
     private final KeycloakSession keycloakSession;
 
@@ -84,7 +86,12 @@ public class AvatarResource {
             return badRequest();
         }
 
+        if (!isValidStateChecker(input)) {
+            return badRequest();
+        }
+
         try {
+
             InputStream imageInputStream = input.getFormDataPart(AVATAR_IMAGE_PARAMETER, InputStream.class, null);
 
             String realmName = auth.getSession().getRealm().getName();
@@ -100,7 +107,19 @@ public class AvatarResource {
             return Response.ok().build();
 
         } catch (Exception ex) {
-            return badRequest();
+            return Response.serverError().build();
+        }
+    }
+
+    private boolean isValidStateChecker(MultipartFormDataInput input) {
+
+        try {
+            String actualStateChecker = input.getFormDataPart(STATE_CHECKER_PARAMETER, String.class, null);
+            String requiredStateChecker = (String) keycloakSession.getAttribute(STATE_CHECKER_ATTRIBUTE);
+
+            return actualStateChecker != null && requiredStateChecker.equals(actualStateChecker);
+        } catch (Exception ex) {
+            return false;
         }
     }
 
