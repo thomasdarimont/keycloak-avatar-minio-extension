@@ -2,7 +2,13 @@ package com.github.thomasdarimont.keycloak.avatar;
 
 import com.github.thomasdarimont.keycloak.avatar.storage.AvatarStorageProvider;
 import com.github.thomasdarimont.keycloak.avatar.storage.minio.MinioAvatarStorageProviderFactory;
+import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.core.MultivaluedMap;
+import org.jboss.logging.Logger;
+import org.jboss.resteasy.annotations.cache.NoCache;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+import org.keycloak.models.KeycloakContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.services.managers.AppAuthManager;
@@ -22,8 +28,12 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
+import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
 public class AvatarResource {
+    private static final Logger log = Logger.getLogger(AvatarResource.class);
 
     private static final String AVATAR_IMAGE_PARAMETER = "image";
     public static final String STATE_CHECKER_ATTRIBUTE = "state_checker";
@@ -35,10 +45,15 @@ public class AvatarResource {
 
     private final AvatarStorageProvider avatarStorageProvider;
 
+    private final AdminPermissionEvaluator adminPermissionEvaluator;
+
     public AvatarResource(KeycloakSession keycloakSession) {
         this.keycloakSession = keycloakSession;
         this.auth = resolveAuthentication(keycloakSession);
         this.avatarStorageProvider = lookupAvatarStorageProvider(keycloakSession);
+        RealmModel realm = keycloakSession.getContext().getRealm();
+        AdminAuth adminAuth = new AdminAuth(realm, auth.getToken(), auth.getUser(), realm.getClientByClientId("realm-management"));
+        this.adminPermissionEvaluator = AdminPermissions.evaluator(keycloakSession, keycloakSession.getContext().getRealm(), adminAuth);
     }
 
     private AuthenticationManager.AuthResult resolveAuthentication(KeycloakSession keycloakSession) {
@@ -46,13 +61,27 @@ public class AvatarResource {
         AppAuthManager appAuthManager = new AppAuthManager();
         RealmModel realm = keycloakSession.getContext().getRealm();
 
-        AuthenticationManager.AuthResult authResult = appAuthManager.authenticateIdentityCookie(keycloakSession, realm);
+        AuthenticationManager.AuthResult authResult  = appAuthManager.authenticateBearerToken(keycloakSession, realm);
         if (authResult != null) {
             return authResult;
         }
 
-        authResult = appAuthManager.authenticateBearerToken(keycloakSession, realm);
-        return authResult;
+        KeycloakContext context = keycloakSession.getContext();
+        MultivaluedMap<String, String> queryParameters = context.getUri().getQueryParameters(true);
+        if (queryParameters.containsKey("access_token")) {
+            String accessToken = queryParameters.getFirst("access_token");
+            authResult = appAuthManager.authenticateBearerToken(accessToken, keycloakSession, context.getRealm(), context.getUri(), context.getConnection(), context.getRequestHeaders());
+            if (authResult != null) {
+                return authResult;
+            }
+        }
+
+        authResult = appAuthManager.authenticateIdentityCookie(keycloakSession, realm);
+        if (authResult != null) {
+            return authResult;
+        }
+
+        return null;
     }
 
     private AvatarStorageProvider lookupAvatarStorageProvider(KeycloakSession keycloakSession) {
@@ -63,9 +92,57 @@ public class AvatarResource {
     }
 
     @GET
+    @Path("/avatar/{user_id}")
+    @Produces({"image/png", "image/jpeg", "image/gif"})
+    public Response downloadUserAvatarImage(@PathParam("user_id") String userId) {
+        try {
+            if (auth == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).build();
+            }
+            canViewUsers();
+
+            RealmModel realm = auth.getSession().getRealm();
+
+            return Response.ok(fetchUserImage(realm.getName(), userId)).build();
+        } catch (ForbiddenException e) {
+            return Response.status(Response.Status.FORBIDDEN).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            log.error("error getting user avatar", e);
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+    }
+
+    @POST
+    @NoCache
+    @Path("/avatar/{user_id}")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response uploadUserAvatarImage(@PathParam("user_id") String userId, MultipartFormDataInput input) {
+        try {
+            if (auth == null) {
+                return Response.status(Response.Status.UNAUTHORIZED).build();
+            }
+            canManageUsers();
+
+            RealmModel realm = auth.getSession().getRealm();
+            String realmName = realm.getName();
+
+            InputStream imageInputStream = input.getFormDataPart(AVATAR_IMAGE_PARAMETER, InputStream.class, null);
+            saveUserImage(realmName, userId, imageInputStream);
+
+        } catch (ForbiddenException e) {
+            return Response.status(Response.Status.FORBIDDEN).entity(e.getMessage()).build();
+        } catch (Exception e) {
+            log.error("error saving user avatar", e);
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+
+        return Response.ok().build();
+    }
+
+    @GET
     @Path("/avatar")
-    @Produces({"image/png"})
-    public Response downloadAvatarImage() {
+    @Produces({"image/png", "image/jpeg", "image/gif"})
+    public Response downloadCurrentUserAvatarImage() {
 
         if (auth == null) {
             return badRequest();
@@ -78,9 +155,10 @@ public class AvatarResource {
     }
 
     @POST
+    @NoCache
     @Path("/avatar")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response uploadAvatarImage(MultipartFormDataInput input, @Context UriInfo uriInfo) {
+    public Response uploadCurrentUserAvatarImage(MultipartFormDataInput input, @Context UriInfo uriInfo) {
 
         if (auth == null) {
             return badRequest();
@@ -145,5 +223,19 @@ public class AvatarResource {
         }
 
         out.flush();
+    }
+
+    private void canViewUsers() {
+        if (!adminPermissionEvaluator.users().canView()) {
+            log.info("user does not have permission to view users");
+            throw new ForbiddenException("user does not have permission to view users");
+        }
+    }
+
+    private void canManageUsers() {
+        if (!adminPermissionEvaluator.users().canManage()) {
+            log.info("user does not have permission to manage users");
+            throw new ForbiddenException("user does not have manage to view users");
+        }
     }
 }

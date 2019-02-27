@@ -3,7 +3,8 @@
     {
       "name": "account-avatar",
       "types": [
-        "account"
+        "account",
+        "admin"
       ]
     }
   ]

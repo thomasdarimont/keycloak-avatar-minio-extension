@@ -73,9 +73,10 @@
         </div>
     </div>
 
-    <form action="${url.accountUrl}../avatar-provider/avatar?account" class="form-horizontal" method="post" enctype="multipart/form-data">
+    <#assign avatarUrl = url.accountUrl?replace("^(.*)(/account/?)(\\?(.*))?$", "$1/avatar-provider/avatar?account&$4", 'r') />
+    <form action="${avatarUrl}" class="form-horizontal" method="post" enctype="multipart/form-data">
 
-        <img src="${url.accountUrl}../avatar-provider/avatar" style="width:100px; height: 100px;" >
+        <img src="${avatarUrl}" style="max-width:200px;" >
         <input type="file" id="avatar" name="image">
 
     <!-- TODO verify state checker -->
