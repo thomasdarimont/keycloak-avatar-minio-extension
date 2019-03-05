@@ -1,12 +1,10 @@
 package com.github.thomasdarimont.keycloak.avatar.storage;
 
-import com.github.thomasdarimont.keycloak.avatar.AvatarResourceProviderFactory;
-import com.github.thomasdarimont.keycloak.avatar.storage.AvatarStorageProvider;
 import org.keycloak.provider.Provider;
 import org.keycloak.provider.ProviderFactory;
 import org.keycloak.provider.Spi;
 
-public class AvatarStoragePoviderSpi implements Spi {
+public class AvatarStorageProviderSpi implements Spi {
 
     @Override
     public boolean isInternal() {
@@ -25,6 +23,6 @@ public class AvatarStoragePoviderSpi implements Spi {
 
     @Override
     public Class<? extends ProviderFactory> getProviderFactoryClass() {
-        return AvatarResourceProviderFactory.class;
+        return AvatarStorageProviderFactory.class;
     }
 }

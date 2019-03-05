@@ -15,7 +15,7 @@ public class MinioAvatarStorageProviderFactory implements AvatarStorageProviderF
     private static final String DEFAULT_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE";
     private static final String DEFAULT_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 
-    private MinioConfig minioConfig = new MinioConfig(DEFAULT_SERVER_URL, DEFAULT_ACCESS_KEY, DEFAULT_SECRET_KEY);
+    private MinioConfig minioConfig;
 
     @Override
     public AvatarStorageProvider create(KeycloakSession session) {

@@ -85,10 +85,7 @@ public class AvatarResource {
     }
 
     private AvatarStorageProvider lookupAvatarStorageProvider(KeycloakSession keycloakSession) {
-
-        // TODO deploy AvatarStorageProvider SPI in Keycloak
-        // return keycloakSession.getProvider(AvatarStorageProvider.class);
-        return new MinioAvatarStorageProviderFactory().create(keycloakSession);
+        return keycloakSession.getProvider(AvatarStorageProvider.class);
     }
 
     @GET
