@@ -1,6 +1,6 @@
 module.service('UserAvatar', function(Auth) {
     this.url = function(user, realm) {
-        return authUrl + '/realms/' + realm.realm + '/avatar-provider/avatar/' + user.id + "?access_token=" + Auth.authz.token + "&" + + new Date().getTime();
+        return authUrl + '/realms/' + realm.realm + '/avatar-provider/admin/' + user.id + "?access_token=" + Auth.authz.token + "&" + + new Date().getTime();
     }
 });
 

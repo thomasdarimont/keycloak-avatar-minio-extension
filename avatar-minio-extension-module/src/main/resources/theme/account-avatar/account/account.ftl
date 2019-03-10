@@ -73,7 +73,7 @@
         </div>
     </div>
 
-    <#assign avatarUrl = url.accountUrl?replace("^(.*)(/account/?)(\\?(.*))?$", "$1/avatar-provider/avatar?account&$4", 'r') />
+    <#assign avatarUrl = url.accountUrl?replace("^(.*)(/account/?)(\\?(.*))?$", "$1/avatar-provider/?account&$4", 'r') />
     <form action="${avatarUrl}" class="form-horizontal" method="post" enctype="multipart/form-data">
 
         <img src="${avatarUrl}" style="max-width:200px;" >
