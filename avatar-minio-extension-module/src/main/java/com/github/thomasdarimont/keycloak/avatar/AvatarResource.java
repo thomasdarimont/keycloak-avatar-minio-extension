@@ -22,6 +22,7 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 public class AvatarResource {
 
@@ -117,7 +118,7 @@ public class AvatarResource {
             String actualStateChecker = input.getFormDataPart(STATE_CHECKER_PARAMETER, String.class, null);
             String requiredStateChecker = (String) keycloakSession.getAttribute(STATE_CHECKER_ATTRIBUTE);
 
-            return actualStateChecker != null && requiredStateChecker.equals(actualStateChecker);
+            return Objects.equals(requiredStateChecker, actualStateChecker);
         } catch (Exception ex) {
             return false;
         }
