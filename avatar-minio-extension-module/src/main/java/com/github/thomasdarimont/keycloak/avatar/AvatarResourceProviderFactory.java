@@ -21,7 +21,6 @@ public class AvatarResourceProviderFactory implements RealmResourceProviderFacto
 
     @Override
     public void init(Scope scope) {
-        
     }
 
     @Override

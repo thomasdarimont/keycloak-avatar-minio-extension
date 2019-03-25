@@ -1,8 +1,10 @@
 package com.github.thomasdarimont.keycloak.avatar;
 
-import com.github.thomasdarimont.keycloak.avatar.storage.AvatarStorageProvider;
-import com.github.thomasdarimont.keycloak.avatar.storage.minio.MinioAvatarStorageProviderFactory;
+import javax.ws.rs.core.MultivaluedMap;
+import org.jboss.logging.Logger;
+import org.jboss.resteasy.annotations.cache.NoCache;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.services.managers.AppAuthManager;
@@ -17,33 +19,25 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Objects;
 
-public class AvatarResource {
+public class AvatarResource extends AbstractAvatarResource {
+    private static final Logger log = Logger.getLogger(AvatarResource.class);
 
-    private static final String AVATAR_IMAGE_PARAMETER = "image";
     public static final String STATE_CHECKER_ATTRIBUTE = "state_checker";
     public static final String STATE_CHECKER_PARAMETER = "stateChecker";
 
-    private final KeycloakSession keycloakSession;
-
     private final AuthenticationManager.AuthResult auth;
 
-    private final AvatarStorageProvider avatarStorageProvider;
-
-    public AvatarResource(KeycloakSession keycloakSession) {
-        this.keycloakSession = keycloakSession;
-        this.auth = resolveAuthentication(keycloakSession);
-        this.avatarStorageProvider = lookupAvatarStorageProvider(keycloakSession);
+    public AvatarResource(KeycloakSession session) {
+        super(session);
+        this.auth = resolveAuthentication(session);
     }
 
     private AuthenticationManager.AuthResult resolveAuthentication(KeycloakSession keycloakSession) {
-
         AppAuthManager appAuthManager = new AppAuthManager();
         RealmModel realm = keycloakSession.getContext().getRealm();
 
@@ -52,21 +46,20 @@ public class AvatarResource {
             return authResult;
         }
 
-        authResult = appAuthManager.authenticateBearerToken(keycloakSession, realm);
-        return authResult;
+        return null;
     }
 
-    private AvatarStorageProvider lookupAvatarStorageProvider(KeycloakSession keycloakSession) {
-
-        // TODO deploy AvatarStorageProvider SPI in Keycloak
-        // return keycloakSession.getProvider(AvatarStorageProvider.class);
-        return new MinioAvatarStorageProviderFactory().create(keycloakSession);
+    @Path("/admin")
+    public AvatarAdminResource admin() {
+        AvatarAdminResource service = new AvatarAdminResource(session);
+        ResteasyProviderFactory.getInstance().injectProperties(service);
+        service.init();
+        return service;
     }
 
     @GET
-    @Path("/avatar")
-    @Produces({"image/png"})
-    public Response downloadAvatarImage() {
+    @Produces({"image/png", "image/jpeg", "image/gif"})
+    public Response downloadCurrentUserAvatarImage() {
 
         if (auth == null) {
             return badRequest();
@@ -79,9 +72,9 @@ public class AvatarResource {
     }
 
     @POST
-    @Path("/avatar")
+    @NoCache
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response uploadAvatarImage(MultipartFormDataInput input, @Context UriInfo uriInfo) {
+    public Response uploadCurrentUserAvatarImage(MultipartFormDataInput input, @Context UriInfo uriInfo) {
 
         if (auth == null) {
             return badRequest();
@@ -101,7 +94,7 @@ public class AvatarResource {
             saveUserImage(realmName, userId, imageInputStream);
 
             if (uriInfo.getQueryParameters().containsKey("account")) {
-                return Response.seeOther(RealmsResource.accountUrl(keycloakSession.getContext().getUri().getBaseUriBuilder()).build(realmName)).build();
+                return Response.seeOther(RealmsResource.accountUrl(session.getContext().getUri().getBaseUriBuilder()).build(realmName)).build();
             }
 
 
@@ -116,7 +109,7 @@ public class AvatarResource {
 
         try {
             String actualStateChecker = input.getFormDataPart(STATE_CHECKER_PARAMETER, String.class, null);
-            String requiredStateChecker = (String) keycloakSession.getAttribute(STATE_CHECKER_ATTRIBUTE);
+            String requiredStateChecker = (String) session.getAttribute(STATE_CHECKER_ATTRIBUTE);
 
             return Objects.equals(requiredStateChecker, actualStateChecker);
         } catch (Exception ex) {
@@ -124,27 +117,4 @@ public class AvatarResource {
         }
     }
 
-    private Response badRequest() {
-        return Response.status(Response.Status.BAD_REQUEST).build();
-    }
-
-    private void saveUserImage(String realmName, String userId, InputStream imageInputStream) {
-        avatarStorageProvider.saveAvatarImage(realmName, userId, imageInputStream);
-    }
-
-    private StreamingOutput fetchUserImage(String realmId, String userId) {
-        return output -> copyStream(avatarStorageProvider.loadAvatarImage(realmId, userId), output);
-    }
-
-    private void copyStream(InputStream in, OutputStream out) throws IOException {
-
-        byte[] buffer = new byte[16384];
-
-        int len;
-        while ((len = in.read(buffer)) != -1) {
-            out.write(buffer, 0, len);
-        }
-
-        out.flush();
-    }
 }
