@@ -79,7 +79,6 @@
         <img src="${avatarUrl}" style="max-width:200px;" >
         <input type="file" id="avatar" name="image">
 
-    <!-- TODO verify state checker -->
         <input type="hidden" name="stateChecker" value="${stateChecker}">
 
         <div class="form-group">

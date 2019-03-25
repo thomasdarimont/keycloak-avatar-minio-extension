@@ -3,7 +3,7 @@
     <deployment>
         <module-alias name="deployment.avatar-minio-extension-bundle"/>
     </deployment>
-    <sub-deployment name="com.github.thomasdarimont.keycloak-avatar-minio-extension-module-1.0.0.0-SNAPSHOT.jar">
+    <sub-deployment name="com.github.thomasdarimont.keycloak-avatar-minio-extension-module-1.0.1.0-SNAPSHOT.jar">
         <dependencies>
             <module name="javax.servlet.api"/>
             <module name="javax.ws.rs.api"/>

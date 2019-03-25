@@ -21,6 +21,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Objects;
 
 public class AvatarResource extends AbstractAvatarResource {
     private static final Logger log = Logger.getLogger(AvatarResource.class);
@@ -109,7 +111,7 @@ public class AvatarResource extends AbstractAvatarResource {
             String actualStateChecker = input.getFormDataPart(STATE_CHECKER_PARAMETER, String.class, null);
             String requiredStateChecker = (String) session.getAttribute(STATE_CHECKER_ATTRIBUTE);
 
-            return actualStateChecker != null && requiredStateChecker.equals(actualStateChecker);
+            return Objects.equals(requiredStateChecker, actualStateChecker);
         } catch (Exception ex) {
             return false;
         }
